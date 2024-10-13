@@ -383,15 +383,17 @@ class Tapper:
                 if tasks is not None and tasks.get("status", 500) == 0:
                     for values in tasks["data"].values():
                         for task in values:
-                            if task.get('enable'):
-                                if task.get('startTime') and task.get('endTime'):
-                                    task_start = convert_to_local_and_unix(task['startTime'])
-                                    task_end = convert_to_local_and_unix(task['endTime'])
-                                    if task_start <= time() <= task_end:
+                            try:
+                                if task.get('enable'):
+                                    if task.get('startTime') and task.get('endTime'):
+                                        task_start = convert_to_local_and_unix(task['startTime'])
+                                        task_end = convert_to_local_and_unix(task['endTime'])
+                                        if task_start <= time() <= task_end:
+                                            tasks_list.append(task)
+                                    elif task.get('type') != 'wallet':
                                         tasks_list.append(task)
-                                elif task.get('type') != 'wallet':
-                                    tasks_list.append(task)
-                
+                            except:
+                                logger.error(f"{self.session_name} | Task oops! 🍅")
                 for task in tasks_list:
                     wait_second = task.get('waitSecond', 0)
                     starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
