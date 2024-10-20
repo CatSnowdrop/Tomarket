@@ -145,7 +145,7 @@ class Tapper:
 
     @error_handler
     async def upgrade_rank(self, http_client, stars):
-        return await self.make_request(http_client, "POST", "/rank/data", json={"stars": int(stars)})
+        return await self.make_request(http_client, "POST", "/spin/raffle", json={"stars": int(stars)})
 
     @error_handler
     async def claim_daily(self, http_client):
@@ -277,7 +277,7 @@ class Tapper:
 
             if settings.AUTO_UPGRADE_RANK:
                 unusedStars = await self.get_unusedStars(http_client=http_client)
-                available_unusedStars = int(unusedStars['data']['unusedStars'])
+                available_unusedStars = unusedStars['data']['unusedStars']
                 logger.info(f"{self.session_name} | Available unused stars: <light-red>{available_unusedStars}</light-red>")
                 if available_unusedStars > 0:
                     upgrade_rank = await self.upgrade_rank(http_client=http_client, stars=available_unusedStars)
@@ -392,25 +392,24 @@ class Tapper:
                                             tasks_list.append(task)
                                     elif task.get('type') != 'wallet':
                                         tasks_list.append(task)
-                            except:
-                                logger.error(f"{self.session_name} | Task oops!")
+                            except Exception as e:
+                                continue
+                
                 for task in tasks_list:
-                    try:
-                        wait_second = task.get('waitSecond', 0)
-                        starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
-                        if starttask is not None and starttask.get('data') and starttask.get('data', {}).get('status', 3) != 3:
-                            logger.info(f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
-                            await asyncio.sleep(wait_second)
-                            await self.check_task(http_client=http_client, data={'task_id': task['taskId']})                    
-                            claim = await self.claim_task(http_client=http_client, data={'task_id': task['taskId']})
-                            if claim['status'] == 0:
-                                logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! 🍅")
-                                await asyncio.sleep(2)
-                            else:
-                                logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red>not claimed! 🍅")
-                                await asyncio.sleep(2)
-                    except:
-                        logger.error(f"{self.session_name} | Task oops!")
+                    wait_second = task.get('waitSecond', 0)
+                    starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
+                    if starttask is not None and starttask.get('data') and starttask.get('data', {}).get('status', 3) != 3:
+                        logger.info(f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
+                        await asyncio.sleep(wait_second)
+                        await self.check_task(http_client=http_client, data={'task_id': task['taskId']})                    
+                        claim = await self.claim_task(http_client=http_client, data={'task_id': task['taskId']})
+                        if claim['status'] == 0:
+                            logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! 🍅")
+                            await asyncio.sleep(2)
+                        else:
+                            logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red>not claimed! 🍅")
+                            await asyncio.sleep(2)
+                
             if http_client and not http_client.closed:
                 await http_client.close()
                 if proxy_conn and not proxy_conn.closed:
